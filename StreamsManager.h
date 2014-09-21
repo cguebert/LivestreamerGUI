@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QString>
 #include <QPixmap>
+#include <QElapsedTimer>
 
 class QJsonObject;
 
@@ -18,10 +19,13 @@ public:
 	QString url, name, comment, game, language;
 	QString previewUrl;
 	QPixmap preview;
+	qint64 previewTimestamp;
 	QStringList availableStreams;
 	int viewers;
 	bool updatingPreview, updatingAvailableStreams;
 };
+
+//****************************************************************************//
 
 class StreamsManager : public QObject
 {
@@ -57,6 +61,7 @@ protected:
 
 	StreamsList m_streams;
 	QStringList m_games;
+	QElapsedTimer m_elapsedTimer;
 };
 
 #endif // QUERYMANAGER_H

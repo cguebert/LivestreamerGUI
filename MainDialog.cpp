@@ -146,12 +146,12 @@ void MainDialog::selectionChanged(QListWidgetItem* current, QListWidgetItem*)
 				m_gameLabel->setText(m_selectedStream->game);
 
 				if(m_selectedStream->preview.isNull())
-				{
 					m_pictureLabel->clear();
-					m_streamsManager.updatePicture(*m_selectedStream);
-				}
 				else
 					m_pictureLabel->setPixmap(m_selectedStream->preview);
+
+				// Will update the picture if it does not exist or is too old
+				m_streamsManager.updatePicture(*m_selectedStream);
 
 #ifdef TEST_AVAILABLE_STREAMS
 				if(m_selectedStream->availableStreams.isEmpty() && !m_selectedStream->updatingAvailableStreams)
@@ -210,6 +210,7 @@ void MainDialog::updateStreamsList()
 		if(stream->url == currentUrl)
 		{
 			stream->preview = prevSelection->preview;
+			stream->previewTimestamp = prevSelection->previewTimestamp;
 			m_listWidget->setCurrentItem(item); // Will call selectionChanged and set m_selectedStream
 		}
 	}

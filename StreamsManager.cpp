@@ -9,6 +9,7 @@
 Stream::Stream(const QJsonObject& jsonObject)
 	: updatingPreview(false)
 	, updatingAvailableStreams(false)
+	, previewTimestamp(-1)
 {
 	auto channel = jsonObject.value("channel").toObject();
 	auto preview = jsonObject.value("preview").toObject();
@@ -24,10 +25,13 @@ Stream::Stream(const QJsonObject& jsonObject)
 	previewUrl = preview.value("medium").toString();
 }
 
+//****************************************************************************//
+
 StreamsManager::StreamsManager(QObject* parent)
 	: QObject(parent)
 	, m_networkManager(this)
 {
+	m_elapsedTimer.start();
 }
 
 void StreamsManager::updateStreamsList()
@@ -53,6 +57,9 @@ void StreamsManager::updateStreamsList(QString game)
 void StreamsManager::updatePicture(Stream& stream)
 {
 	if(stream.updatingPreview)
+		return;
+
+	if(stream.previewTimestamp > 0 && m_elapsedTimer.elapsed() - stream.previewTimestamp < 20000)
 		return;
 
 	stream.updatingPreview = true;
@@ -92,6 +99,7 @@ void StreamsManager::previewReply()
 	if(stream)
 	{
 		stream->preview.loadFromData(reply->readAll());
+		stream->previewTimestamp = m_elapsedTimer.elapsed();
 		stream->updatingPreview = false;
 		emit previewUpdated(stream.data());
 	}
