@@ -21,6 +21,7 @@ protected slots:
 	void launchLiveStreamer();
 	void selectionChanged(QListWidgetItem*, QListWidgetItem*);
 	void filterStreams();
+	void automaticUpdate();
 
 protected:
 	virtual void closeEvent(QCloseEvent*);
@@ -28,6 +29,7 @@ protected:
 	void writeSettings();
 	void testAvailableStreams(StreamsManager::StreamPtr stream);
 	void enableLaunchButtons(QStringList availableStreams);
+	void enableLaunchButtons(bool enable);
 
 	StreamsManager m_streamsManager;
 	StreamsManager::StreamPtr m_selectedStream;
@@ -47,6 +49,7 @@ protected:
 	QPushButton* m_launchMedium;
 	QPushButton* m_launchHigh;
 	QPushButton* m_launchSource;
+	QTimer* m_updateTimer;
 };
 
 #endif // MAINDIALOG_H

@@ -57,10 +57,7 @@ MainDialog::MainDialog()
 	m_launchHigh = new QPushButton("high");
 	m_launchSource = new QPushButton("source");
 
-	m_launchLow->setEnabled(false);
-	m_launchMedium->setEnabled(false);
-	m_launchHigh->setEnabled(false);
-	m_launchSource->setEnabled(false);
+	enableLaunchButtons(false);
 
 	connect(m_launchLow,	SIGNAL(clicked()), this, SLOT(launchLiveStreamer()));
 	connect(m_launchMedium,	SIGNAL(clicked()), this, SLOT(launchLiveStreamer()));
@@ -108,6 +105,10 @@ MainDialog::MainDialog()
 	connect(&m_streamsManager, SIGNAL(gamesListUpdated()), this, SLOT(updateGamesList()));
 	connect(m_listWidget, SIGNAL(currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT(selectionChanged(QListWidgetItem*, QListWidgetItem*)));
 
+	m_updateTimer = new QTimer(this);
+	m_updateTimer->start(30000); // Update every 30 seconds
+	connect(m_updateTimer, SIGNAL(timeout()), this, SLOT(automaticUpdate()));
+
 	updateEverything();
 
 	readSettings();
@@ -128,10 +129,7 @@ void MainDialog::selectionChanged(QListWidgetItem* current, QListWidgetItem*)
 	if(!current)
 	{
 		m_selectedStream.reset();
-		m_launchLow->setEnabled(false);
-		m_launchMedium->setEnabled(false);
-		m_launchHigh->setEnabled(false);
-		m_launchSource->setEnabled(false);
+		enableLaunchButtons(false);
 	}
 	else
 	{
@@ -168,10 +166,7 @@ void MainDialog::selectionChanged(QListWidgetItem* current, QListWidgetItem*)
 				else
 					enableLaunchButtons(m_selectedStream->availableStreams);
 #else
-				m_launchLow->setEnabled(true);
-				m_launchMedium->setEnabled(true);
-				m_launchHigh->setEnabled(true);
-				m_launchSource->setEnabled(true);
+				enableLaunchButtons(true);
 #endif
 			}
 		}
@@ -193,8 +188,13 @@ void MainDialog::updateEverything()
 
 void MainDialog::updateStreamsList()
 {
+	QString currentUrl;
+	StreamsManager::StreamPtr prevSelection = m_selectedStream;
+	if(m_selectedStream)
+		currentUrl = m_selectedStream->url;
+
 	const auto& streams = m_streamsManager.getStreams();
-	m_listWidget->clear();
+	m_listWidget->clear(); // Will call selectionChanged and reset m_selectedStream
 
 	QString language = m_languageEdit->text();
 
@@ -206,6 +206,12 @@ void MainDialog::updateStreamsList()
 		QListWidgetItem* item = new QListWidgetItem(stream->name, m_listWidget);
 		item->setData(Qt::UserRole, stream->url);
 		m_listWidget->addItem(item);
+
+		if(stream->url == currentUrl)
+		{
+			stream->preview = prevSelection->preview;
+			m_listWidget->setCurrentItem(item); // Will call selectionChanged and set m_selectedStream
+		}
 	}
 
 	if(streams.isEmpty())
@@ -216,6 +222,7 @@ void MainDialog::updateStreamsList()
 	}
 
 	m_updateButton->setEnabled(true);
+	enableLaunchButtons(m_selectedStream);
 }
 
 void MainDialog::updatePicture(Stream* stream)
@@ -247,12 +254,26 @@ void MainDialog::filterStreams()
 		m_streamsManager.updateStreamsList(game);
 }
 
+void MainDialog::automaticUpdate()
+{
+	m_updateButton->setEnabled(false);
+	m_streamsManager.updateStreamsList();
+}
+
 void MainDialog::enableLaunchButtons(QStringList availableStreams)
 {
 	m_launchLow->setEnabled(availableStreams.contains("low"));
 	m_launchMedium->setEnabled(availableStreams.contains("medium"));
 	m_launchHigh->setEnabled(availableStreams.contains("high"));
 	m_launchSource->setEnabled(availableStreams.contains("source"));
+}
+
+void MainDialog::enableLaunchButtons(bool enable)
+{
+	m_launchLow->setEnabled(enable);
+	m_launchMedium->setEnabled(enable);
+	m_launchHigh->setEnabled(enable);
+	m_launchSource->setEnabled(enable);
 }
 
 void MainDialog::closeEvent(QCloseEvent* event)
@@ -343,3 +364,4 @@ void MainDialog::testAvailableStreams(StreamsManager::StreamPtr stream)
 	if(stream == m_selectedStream)
 		enableLaunchButtons(stream->availableStreams);
 }
+
