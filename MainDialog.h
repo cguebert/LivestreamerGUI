@@ -34,6 +34,8 @@ protected:
 	void testAvailableStreams(StreamsManager::StreamPtr stream);
 	void enableLaunchButtons(QStringList availableStreams);
 	void enableLaunchButtons(bool enable);
+	void checkAllGamesOption(const QStringList& checked);
+	void checkAllLanguagesOption(const QStringList& checked);
 
 	StreamsManager m_streamsManager;
 	StreamsManager::StreamPtr m_selectedStream;
