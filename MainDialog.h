@@ -5,6 +5,7 @@
 #include <QtWidgets>
 
 #include "StreamsManager.h"
+#include "qxt/QxtCheckComboBox.h"
 
 class MainDialog : public QDialog
 {
@@ -22,6 +23,7 @@ protected slots:
 	void selectionChanged(QListWidgetItem*, QListWidgetItem*);
 	void filterStreams();
 	void automaticUpdate();
+	void gamesSelectionChanged(const QStringList& items);
 
 protected:
 	virtual void closeEvent(QCloseEvent*);
@@ -34,11 +36,15 @@ protected:
 	StreamsManager m_streamsManager;
 	StreamsManager::StreamPtr m_selectedStream;
 
+	QStringList m_gamesSelection;
+	Qt::CheckState m_allGamesCheckState;
+	bool m_changingGamesList;
+
 	QSplitter* m_splitter;
 	QListWidget* m_listWidget;
 	QPushButton* m_launchButton;
 	QPushButton* m_updateButton;
-	QComboBox* m_gamesWidget;
+	QxtCheckComboBox* m_gamesWidget;
 	QLineEdit* m_languageEdit;
 	QLabel* m_pictureLabel;
 	QLabel* m_nameLabel;

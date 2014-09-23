@@ -7,6 +7,7 @@
 
 MainDialog::MainDialog()
 	: m_streamsManager(this)
+	, m_changingGamesList(false)
 {
 	QVBoxLayout* vMainLayout = new QVBoxLayout;
 	m_splitter = new QSplitter;
@@ -39,12 +40,16 @@ MainDialog::MainDialog()
 
 	QFormLayout* filterLayout = new QFormLayout;
 	m_languageEdit = new QLineEdit;
-	m_gamesWidget = new QComboBox;
-	m_gamesWidget->addItem("All");
+	m_languageEdit->setText("en");
+
+	m_gamesWidget = new QxtCheckComboBox;
+	m_gamesWidget->addItem("All games");
+	m_gamesWidget->setDefaultText("No filter");
+	m_gamesWidget->setDisplayMultipleSelection(false);
+	m_gamesWidget->setMultipleSelectionText("%1 games selected");
 
 	filterLayout->addRow("Games", m_gamesWidget);
 	filterLayout->addRow("Language", m_languageEdit);
-	m_languageEdit->setText("en");
 
 	QGroupBox* filterBox = new QGroupBox;
 	filterBox->setTitle("Filters");
@@ -104,6 +109,7 @@ MainDialog::MainDialog()
 	connect(&m_streamsManager, SIGNAL(previewUpdated(Stream*)), this, SLOT(updatePicture(Stream*)));
 	connect(&m_streamsManager, SIGNAL(gamesListUpdated()), this, SLOT(updateGamesList()));
 	connect(m_listWidget, SIGNAL(currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT(selectionChanged(QListWidgetItem*, QListWidgetItem*)));
+	connect(m_gamesWidget, SIGNAL(checkedItemsChanged(QStringList)), this, SLOT(gamesSelectionChanged(QStringList)));
 
 	m_updateTimer = new QTimer(this);
 	m_updateTimer->start(30000); // Update every 30 seconds
@@ -173,6 +179,28 @@ void MainDialog::selectionChanged(QListWidgetItem* current, QListWidgetItem*)
 	}
 }
 
+void MainDialog::gamesSelectionChanged(const QStringList& items)
+{
+	if(m_changingGamesList)
+		return;
+
+	Qt::CheckState tmpAllGamesState = m_gamesWidget->itemCheckState(0);
+	if(tmpAllGamesState != m_allGamesCheckState)
+	{
+		m_changingGamesList = true;
+		m_allGamesCheckState = tmpAllGamesState;
+		for(int i=0, nb=m_gamesWidget->count(); i<nb; ++i)
+			m_gamesWidget->setItemCheckState(i, m_allGamesCheckState);
+		m_changingGamesList = false;
+
+		m_gamesSelection = m_gamesWidget->checkedItems();
+	}
+	else
+		m_gamesSelection = items;
+
+	updateStreamsList();
+}
+
 void MainDialog::updateEverything()
 {
 	m_updateButton->setEnabled(false);
@@ -203,6 +231,9 @@ void MainDialog::updateStreamsList()
 		if(!language.isEmpty() && !stream->language.startsWith(language, Qt::CaseInsensitive))
 			continue;
 
+		if(!m_gamesSelection.empty() && !m_gamesSelection.contains(stream->game))
+			continue;
+
 		QListWidgetItem* item = new QListWidgetItem(stream->name, m_listWidget);
 		item->setData(Qt::UserRole, stream->url);
 		m_listWidget->addItem(item);
@@ -222,6 +253,13 @@ void MainDialog::updateStreamsList()
 		m_listWidget->addItem(item);
 	}
 
+	if(!m_listWidget->count())
+	{
+		QListWidgetItem* item = new QListWidgetItem("No stream corresponding to the filters", m_listWidget);
+		item->setForeground(QColor(255,255,0));
+		m_listWidget->addItem(item);
+	}
+
 	m_updateButton->setEnabled(true);
 	enableLaunchButtons(m_selectedStream);
 }
@@ -237,10 +275,16 @@ void MainDialog::updatePicture(Stream* stream)
 void MainDialog::updateGamesList()
 {
 	auto games = m_streamsManager.getGames();
-	games.insert(0, "All");
+	games.insert(0, "All games");
 
 	m_gamesWidget->clear();
 	m_gamesWidget->addItems(games);
+
+	if(m_allGamesCheckState == Qt::Checked)
+	{
+		for(int i=0, nb=games.size(); i<nb; ++i)
+			m_gamesWidget->setItemCheckState(i, Qt::Checked);
+	}
 }
 
 void MainDialog::filterStreams()
@@ -307,6 +351,9 @@ void MainDialog::readSettings()
 		splitterSizes << width * 0.4 << width * 0.6;
 		m_splitter->setSizes(splitterSizes);
 	}
+
+	// TODO: load games filters
+	m_allGamesCheckState = Qt::Checked;
 }
 
 void MainDialog::writeSettings()
