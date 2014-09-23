@@ -318,7 +318,7 @@ void MainDialog::updateStreamsList()
 	if(!m_listWidget->count())
 	{
 		QListWidgetItem* item = new QListWidgetItem("No stream corresponding to the filters", m_listWidget);
-		item->setForeground(QColor(255,255,0));
+		item->setForeground(QColor(255,128,0));
 		m_listWidget->addItem(item);
 	}
 
@@ -354,6 +354,7 @@ void MainDialog::updateGamesList()
 		checkAllGamesOption(m_gamesSelection);
 	}
 
+	m_gamesSelection = m_gamesComboxBox->checkedItems();
 	m_changingGamesList = false;
 }
 
@@ -446,9 +447,13 @@ void MainDialog::readSettings()
 		m_splitter->setSizes(splitterSizes);
 	}
 
-	// TODO: load games & languages filters
-	m_allGamesCheckState = Qt::Unchecked;
-	m_allLanguagesCheckState = Qt::Unchecked;
+	QString tmpGames = settings.value("games").toString();
+	m_gamesSelection = tmpGames.split(";");
+	m_allGamesCheckState = (m_gamesSelection.contains("All games") ? Qt::Checked : Qt::Unchecked);
+
+	QString tmpLanguages = settings.value("languages").toString();
+	m_languagesSelection = tmpLanguages.split(";");
+	m_allLanguagesCheckState = (m_languagesSelection.contains("All languages") ? Qt::Checked : Qt::Unchecked);
 }
 
 void MainDialog::writeSettings()
@@ -462,6 +467,9 @@ void MainDialog::writeSettings()
 	for(const auto& size : splitterSizes)
 		tempSizes << size;
 	settings.setValue("splitter", tempSizes);
+
+	settings.setValue("games", m_gamesSelection.join(";"));
+	settings.setValue("languages", m_languagesSelection.join(";"));
 }
 
 void MainDialog::launchLiveStreamer()
