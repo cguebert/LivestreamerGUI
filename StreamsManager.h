@@ -45,6 +45,7 @@ public:
 	StreamPtr getStream(QString url);
 
 	const QStringList& getGames();
+	const QStringList& getLanguages();
 
 public slots:
 	void streamsReply();
@@ -55,12 +56,13 @@ signals:
 	void streamsListUpdated();
 	void previewUpdated(Stream*);
 	void gamesListUpdated();
+	void languagesListUpdated();
 
 protected:
 	QNetworkAccessManager m_networkManager;
 
 	StreamsList m_streams;
-	QStringList m_games;
+	QStringList m_games, m_languages;
 	QElapsedTimer m_elapsedTimer;
 };
 

@@ -8,6 +8,7 @@
 MainDialog::MainDialog()
 	: m_streamsManager(this)
 	, m_changingGamesList(false)
+	, m_changingLanguagesList(false)
 {
 	QVBoxLayout* vMainLayout = new QVBoxLayout;
 	m_splitter = new QSplitter;
@@ -39,17 +40,20 @@ MainDialog::MainDialog()
 	rightLayout->addWidget(infoBox);
 
 	QFormLayout* filterLayout = new QFormLayout;
-	m_languageEdit = new QLineEdit;
-	m_languageEdit->setText("en");
+	m_gamesComboxBox = new QxtCheckComboBox;
+	m_gamesComboxBox->addItem("All games");
+	m_gamesComboxBox->setDefaultText("No filter");
+	m_gamesComboxBox->setDisplayMultipleSelection(false);
+	m_gamesComboxBox->setMultipleSelectionText("%1 games selected");
 
-	m_gamesWidget = new QxtCheckComboBox;
-	m_gamesWidget->addItem("All games");
-	m_gamesWidget->setDefaultText("No filter");
-	m_gamesWidget->setDisplayMultipleSelection(false);
-	m_gamesWidget->setMultipleSelectionText("%1 games selected");
+	m_languageComboxBox = new QxtCheckComboBox;
+	m_languageComboxBox->addItem("All languages");
+	m_languageComboxBox->setDefaultText("No filter");
+	m_languageComboxBox->setDisplayMultipleSelection(false);
+	m_languageComboxBox->setMultipleSelectionText("%1 languages selected");
 
-	filterLayout->addRow("Games", m_gamesWidget);
-	filterLayout->addRow("Language", m_languageEdit);
+	filterLayout->addRow("Games", m_gamesComboxBox);
+	filterLayout->addRow("Language", m_languageComboxBox);
 
 	QGroupBox* filterBox = new QGroupBox;
 	filterBox->setTitle("Filters");
@@ -108,8 +112,10 @@ MainDialog::MainDialog()
 	connect(&m_streamsManager, SIGNAL(streamsListUpdated()), this, SLOT(updateStreamsList()));
 	connect(&m_streamsManager, SIGNAL(previewUpdated(Stream*)), this, SLOT(updatePicture(Stream*)));
 	connect(&m_streamsManager, SIGNAL(gamesListUpdated()), this, SLOT(updateGamesList()));
+	connect(&m_streamsManager, SIGNAL(languagesListUpdated()), this, SLOT(updateLanguagesList()));
 	connect(m_listWidget, SIGNAL(currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT(selectionChanged(QListWidgetItem*, QListWidgetItem*)));
-	connect(m_gamesWidget, SIGNAL(checkedItemsChanged(QStringList)), this, SLOT(gamesSelectionChanged(QStringList)));
+	connect(m_gamesComboxBox, SIGNAL(checkedItemsChanged(QStringList)), this, SLOT(gamesSelectionChanged(QStringList)));
+	connect(m_languageComboxBox, SIGNAL(checkedItemsChanged(QStringList)), this, SLOT(languagesSelectionChanged(QStringList)));
 
 	m_updateTimer = new QTimer(this);
 	m_updateTimer->start(30000); // Update every 30 seconds
@@ -184,21 +190,45 @@ void MainDialog::gamesSelectionChanged(const QStringList& items)
 	if(m_changingGamesList)
 		return;
 
-	Qt::CheckState tmpAllGamesState = m_gamesWidget->itemCheckState(0);
+	Qt::CheckState tmpAllGamesState = m_gamesComboxBox->itemCheckState(0);
 	if(tmpAllGamesState != m_allGamesCheckState)
 	{
 		m_changingGamesList = true;
 		m_allGamesCheckState = tmpAllGamesState;
-		for(int i=0, nb=m_gamesWidget->count(); i<nb; ++i)
-			m_gamesWidget->setItemCheckState(i, m_allGamesCheckState);
+		for(int i=0, nb=m_gamesComboxBox->count(); i<nb; ++i)
+			m_gamesComboxBox->setItemCheckState(i, m_allGamesCheckState);
 		m_changingGamesList = false;
 
-		m_gamesSelection = m_gamesWidget->checkedItems();
+		m_gamesSelection = m_gamesComboxBox->checkedItems();
 	}
 	else
 		m_gamesSelection = items;
 
-	updateStreamsList();
+	if(!m_streamsManager.getStreams().empty())
+		updateStreamsList();
+}
+
+void MainDialog::languagesSelectionChanged(const QStringList& items)
+{
+	if(m_changingLanguagesList)
+		return;
+
+	Qt::CheckState tmpAllLanguagesState = m_languageComboxBox->itemCheckState(0);
+	if(tmpAllLanguagesState != m_allLanguagesCheckState)
+	{
+		m_changingLanguagesList = true;
+		m_allLanguagesCheckState = tmpAllLanguagesState;
+		for(int i=0, nb=m_languageComboxBox->count(); i<nb; ++i)
+			m_languageComboxBox->setItemCheckState(i, m_allLanguagesCheckState);
+		m_changingLanguagesList = false;
+
+		m_languagesSelection = m_languageComboxBox->checkedItems();
+	}
+	else
+		m_languagesSelection = items;
+
+	if(!m_streamsManager.getStreams().empty())
+		updateStreamsList();
 }
 
 void MainDialog::updateEverything()
@@ -224,11 +254,9 @@ void MainDialog::updateStreamsList()
 	const auto& streams = m_streamsManager.getStreams();
 	m_listWidget->clear(); // Will call selectionChanged and reset m_selectedStream
 
-	QString language = m_languageEdit->text();
-
 	for(const auto& stream : streams)
 	{
-		if(!language.isEmpty() && !stream->language.startsWith(language, Qt::CaseInsensitive))
+		if(!m_languagesSelection.empty() && !m_languagesSelection.contains(stream->language))
 			continue;
 
 		if(!m_gamesSelection.empty() && !m_gamesSelection.contains(stream->game))
@@ -277,21 +305,36 @@ void MainDialog::updateGamesList()
 	auto games = m_streamsManager.getGames();
 	games.insert(0, "All games");
 
-	m_gamesWidget->clear();
-	m_gamesWidget->addItems(games);
+	m_gamesComboxBox->clear();
+	m_gamesComboxBox->addItems(games);
 
 	if(m_allGamesCheckState == Qt::Checked)
 	{
 		for(int i=0, nb=games.size(); i<nb; ++i)
-			m_gamesWidget->setItemCheckState(i, Qt::Checked);
+			m_gamesComboxBox->setItemCheckState(i, Qt::Checked);
+	}
+}
+
+void MainDialog::updateLanguagesList()
+{
+	auto languages = m_streamsManager.getLanguages();
+	languages.insert(0, "All languages");
+
+	m_languageComboxBox->clear();
+	m_languageComboxBox->addItems(languages);
+
+	if(m_allLanguagesCheckState == Qt::Checked)
+	{
+		for(int i=0, nb=languages.size(); i<nb; ++i)
+			m_languageComboxBox->setItemCheckState(i, Qt::Checked);
 	}
 }
 
 void MainDialog::filterStreams()
 {
 	QString game;
-	if(m_gamesWidget->currentIndex() != 0)
-		game = m_gamesWidget->currentText();
+	if(m_gamesComboxBox->currentIndex() != 0)
+		game = m_gamesComboxBox->currentText();
 
 	if(game.isEmpty())
 		m_streamsManager.updateStreamsList();
@@ -352,8 +395,9 @@ void MainDialog::readSettings()
 		m_splitter->setSizes(splitterSizes);
 	}
 
-	// TODO: load games filters
+	// TODO: load games & languages filters
 	m_allGamesCheckState = Qt::Checked;
+	m_allLanguagesCheckState = Qt::Checked;
 }
 
 void MainDialog::writeSettings()

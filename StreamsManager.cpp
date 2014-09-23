@@ -87,6 +87,15 @@ void StreamsManager::streamsReply()
 	for(const auto& stream : streams)
 		m_streams.push_back(StreamPtr(new Stream(stream.toObject())));
 
+	m_languages.clear();
+	for(const auto& stream : m_streams)
+	{
+		if(!m_languages.contains(stream->language))
+			m_languages << stream->language;
+	}
+	std::sort(m_languages.begin(), m_languages.end());
+
+	emit languagesListUpdated();
 	emit streamsListUpdated();
 	reply->deleteLater();
 }
@@ -144,4 +153,9 @@ StreamsManager::StreamPtr StreamsManager::getStream(QString url)
 const QStringList& StreamsManager::getGames()
 {
 	return m_games;
+}
+
+const QStringList& StreamsManager::getLanguages()
+{
+	return m_languages;
 }
