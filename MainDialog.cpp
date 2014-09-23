@@ -97,12 +97,12 @@ MainDialog::MainDialog()
 	m_updateButton = new QPushButton(tr("Refresh all"), this);
 	connect(m_updateButton, SIGNAL(clicked()), this, SLOT(updateEverything()));
 
-	QPushButton* filterButton = new QPushButton(tr("Filter"), this);
-	connect(filterButton, SIGNAL(clicked()), this, SLOT(filterStreams()));
+//	QPushButton* filterButton = new QPushButton(tr("Filter"), this);
+//	connect(filterButton, SIGNAL(clicked()), this, SLOT(filterStreams()));
 
 	QHBoxLayout* buttonsLayout = new QHBoxLayout;
 	buttonsLayout->addStretch();
-	buttonsLayout->addWidget(filterButton);
+//	buttonsLayout->addWidget(filterButton);
 	buttonsLayout->addWidget(m_updateButton);
 	buttonsLayout->addWidget(quitButton);
 	vMainLayout->addLayout(buttonsLayout);
@@ -190,19 +190,30 @@ void MainDialog::gamesSelectionChanged(const QStringList& items)
 	if(m_changingGamesList)
 		return;
 
+	m_changingGamesList = true;
 	Qt::CheckState tmpAllGamesState = m_gamesComboxBox->itemCheckState(0);
-	if(tmpAllGamesState != m_allGamesCheckState)
+	if(tmpAllGamesState != Qt::PartiallyChecked && tmpAllGamesState != m_allGamesCheckState)
 	{
-		m_changingGamesList = true;
-		m_allGamesCheckState = tmpAllGamesState;
+		m_allGamesCheckState = (tmpAllGamesState == Qt::Checked ? Qt::Checked : Qt::Unchecked);
 		for(int i=0, nb=m_gamesComboxBox->count(); i<nb; ++i)
 			m_gamesComboxBox->setItemCheckState(i, m_allGamesCheckState);
-		m_changingGamesList = false;
-
-		m_gamesSelection = m_gamesComboxBox->checkedItems();
 	}
 	else
-		m_gamesSelection = items;
+	{
+		if(m_allGamesCheckState != Qt::Checked && items.size() == m_gamesComboxBox->count()-1) // All selected
+			m_allGamesCheckState = Qt::Checked;
+		else if(m_allGamesCheckState != Qt::Unchecked && items.empty()) // None selected
+			m_allGamesCheckState = Qt::Unchecked;
+		else
+			m_allGamesCheckState = Qt::PartiallyChecked;
+		m_gamesComboxBox->setItemCheckState(0, m_allGamesCheckState);
+	}
+
+	m_changingGamesList = false;
+	m_gamesSelection = m_gamesComboxBox->checkedItems();
+
+	if(m_gamesSelection.size() == m_gamesComboxBox->count()) // We don't want to count "all games" in the selection count
+		m_gamesComboxBox->setEditText(QString("%1 games selected").arg(m_gamesSelection.size()-1));
 
 	if(!m_streamsManager.getStreams().empty())
 		updateStreamsList();
@@ -213,19 +224,30 @@ void MainDialog::languagesSelectionChanged(const QStringList& items)
 	if(m_changingLanguagesList)
 		return;
 
+	m_changingLanguagesList = true;
 	Qt::CheckState tmpAllLanguagesState = m_languageComboxBox->itemCheckState(0);
-	if(tmpAllLanguagesState != m_allLanguagesCheckState)
+	if(tmpAllLanguagesState != Qt::PartiallyChecked && tmpAllLanguagesState != m_allLanguagesCheckState)
 	{
-		m_changingLanguagesList = true;
 		m_allLanguagesCheckState = tmpAllLanguagesState;
 		for(int i=0, nb=m_languageComboxBox->count(); i<nb; ++i)
 			m_languageComboxBox->setItemCheckState(i, m_allLanguagesCheckState);
-		m_changingLanguagesList = false;
-
-		m_languagesSelection = m_languageComboxBox->checkedItems();
 	}
 	else
-		m_languagesSelection = items;
+	{
+		if(m_allLanguagesCheckState != Qt::Checked && items.size() == m_languageComboxBox->count()-1) // All selected
+			m_allLanguagesCheckState = Qt::Checked;
+		else if(m_allLanguagesCheckState != Qt::Unchecked && items.empty()) // None selected
+			m_allLanguagesCheckState = Qt::Unchecked;
+		else
+			m_allLanguagesCheckState = Qt::PartiallyChecked;
+		m_languageComboxBox->setItemCheckState(0, m_allLanguagesCheckState);
+	}
+
+	m_changingLanguagesList = false;
+	m_languagesSelection = m_languageComboxBox->checkedItems();
+
+	if(m_languagesSelection.size() == m_languageComboxBox->count()) // We don't want to count "all languages" in the selection count
+		m_languageComboxBox->setEditText(QString("%1 languages selected").arg(m_languagesSelection.size()-1));
 
 	if(!m_streamsManager.getStreams().empty())
 		updateStreamsList();
@@ -241,7 +263,7 @@ void MainDialog::updateEverything()
 	m_listWidget->addItem(item);
 
 	m_streamsManager.updateStreamsList();
-	m_streamsManager.updateGames();
+//	m_streamsManager.updateGames();
 }
 
 void MainDialog::updateStreamsList()
@@ -305,6 +327,7 @@ void MainDialog::updateGamesList()
 	auto games = m_streamsManager.getGames();
 	games.insert(0, "All games");
 
+	m_changingGamesList = true;
 	m_gamesComboxBox->clear();
 	m_gamesComboxBox->addItems(games);
 
@@ -313,6 +336,10 @@ void MainDialog::updateGamesList()
 		for(int i=0, nb=games.size(); i<nb; ++i)
 			m_gamesComboxBox->setItemCheckState(i, Qt::Checked);
 	}
+	else
+		m_gamesComboxBox->setCheckedItems(m_gamesSelection);
+
+	m_changingGamesList = false;
 }
 
 void MainDialog::updateLanguagesList()
@@ -320,6 +347,7 @@ void MainDialog::updateLanguagesList()
 	auto languages = m_streamsManager.getLanguages();
 	languages.insert(0, "All languages");
 
+	m_changingLanguagesList = true;
 	m_languageComboxBox->clear();
 	m_languageComboxBox->addItems(languages);
 
@@ -328,6 +356,9 @@ void MainDialog::updateLanguagesList()
 		for(int i=0, nb=languages.size(); i<nb; ++i)
 			m_languageComboxBox->setItemCheckState(i, Qt::Checked);
 	}
+	else
+		m_languageComboxBox->setCheckedItems(m_languagesSelection);
+	m_changingLanguagesList = false;
 }
 
 void MainDialog::filterStreams()
@@ -396,8 +427,8 @@ void MainDialog::readSettings()
 	}
 
 	// TODO: load games & languages filters
-	m_allGamesCheckState = Qt::Checked;
-	m_allLanguagesCheckState = Qt::Checked;
+	m_allGamesCheckState = Qt::Unchecked;
+	m_allLanguagesCheckState = Qt::Unchecked;
 }
 
 void MainDialog::writeSettings()

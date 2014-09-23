@@ -6,6 +6,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <map>
+#include <vector>
+
 Stream::Stream(const QJsonObject& jsonObject)
 	: updatingPreview(false)
 	, updatingAvailableStreams(false)
@@ -16,6 +19,8 @@ Stream::Stream(const QJsonObject& jsonObject)
 
 	viewers = jsonObject.value("viewers").toInt();
 	game = jsonObject.value("game").toString();
+	if(game.isEmpty())
+		game = "Unknown";
 
 	name = channel.value("display_name").toString();
 	url = channel.value("url").toString();
@@ -87,6 +92,8 @@ void StreamsManager::streamsReply()
 	for(const auto& stream : streams)
 		m_streams.push_back(StreamPtr(new Stream(stream.toObject())));
 
+	computeGamesList();
+
 	m_languages.clear();
 	for(const auto& stream : m_streams)
 	{
@@ -95,6 +102,7 @@ void StreamsManager::streamsReply()
 	}
 	std::sort(m_languages.begin(), m_languages.end());
 
+	emit gamesListUpdated();
 	emit languagesListUpdated();
 	emit streamsListUpdated();
 	reply->deleteLater();
@@ -128,10 +136,31 @@ void StreamsManager::gamesReply()
 	{
 		QString name = game.toObject().value("game").toObject().value("name").toString();
 		if(!name.isEmpty())
-			m_games << name;
+			m_games.push_back(name);
 	}
 
 	emit gamesListUpdated();
+}
+
+void StreamsManager::computeGamesList()
+{
+	std::map<QString, int> gamesMap;
+	for(const auto& stream : m_streams)
+		gamesMap[stream->game] += stream->viewers;
+
+	typedef std::pair<QString, int> GamePair;
+	std::vector<GamePair> gamesPairs;
+	for(const auto& game : gamesMap)
+		gamesPairs.push_back(std::make_pair(game.first, game.second));
+
+	std::sort(gamesPairs.begin(), gamesPairs.end(), [](const GamePair& lhs, const GamePair& rhs){
+		return lhs.second > rhs.second;
+	});
+
+	m_games.clear();
+	for(const auto& game : gamesPairs)
+		m_games.push_back(game.first);
+
 }
 
 const StreamsManager::StreamsList& StreamsManager::getStreams()

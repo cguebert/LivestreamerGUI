@@ -36,7 +36,7 @@ public:
 	void updateStreamsList();
 	void updateStreamsList(QString game);
 	void updatePicture(Stream &stream);
-	void updateGames();
+	void updateGames(); // Get the list of games from the Twitch API
 
 	typedef QSharedPointer<Stream> StreamPtr;
 	typedef QVector<StreamPtr> StreamsList;
@@ -59,6 +59,8 @@ signals:
 	void languagesListUpdated();
 
 protected:
+	void computeGamesList(); // Compute the list of games from the list of streams we previously got
+
 	QNetworkAccessManager m_networkManager;
 
 	StreamsList m_streams;
