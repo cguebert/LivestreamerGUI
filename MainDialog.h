@@ -36,6 +36,8 @@ protected:
 	void enableLaunchButtons(bool enable);
 	void checkAllGamesOption(const QStringList& checked);
 	void checkAllLanguagesOption(const QStringList& checked);
+	void computeGamesSelection();
+	void computeLanguagesSelection();
 
 	StreamsManager m_streamsManager;
 	StreamsManager::StreamPtr m_selectedStream;
@@ -64,6 +66,8 @@ protected:
 	QPushButton* m_launchHigh;
 	QPushButton* m_launchSource;
 	QTimer* m_updateTimer;
+
+	QString m_allGamesString, m_allLanguagesString;
 };
 
 #endif // MAINDIALOG_H

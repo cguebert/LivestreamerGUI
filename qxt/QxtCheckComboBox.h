@@ -60,6 +60,7 @@ public:
 	void setDisplayMultipleSelection(bool display);
 
     QStringList checkedItems() const;
+	QStringList uncheckedItems() const;
 
 public Q_SLOTS:
     void setCheckedItems(const QStringList& items);

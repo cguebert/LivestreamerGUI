@@ -20,12 +20,14 @@ Stream::Stream(const QJsonObject& jsonObject)
 	viewers = jsonObject.value("viewers").toInt();
 	game = jsonObject.value("game").toString();
 	if(game.isEmpty())
-		game = "Unknown";
+		game = "Not defined";
 
 	name = channel.value("display_name").toString();
 	url = channel.value("url").toString();
 	comment = channel.value("status").toString();
 	language = channel.value("language").toString();
+	if(language.isEmpty())
+		language = "Not defined";
 
 	previewUrl = preview.value("medium").toString();
 }

@@ -125,6 +125,23 @@ QStringList QxtCheckComboBox::checkedItems() const
     return items;
 }
 
+/*!
+	\property QxtCheckComboBox::uncheckedItems
+	\brief the unchecked items.
+ */
+QStringList QxtCheckComboBox::uncheckedItems() const
+{
+	QStringList items;
+	if (model())
+	{
+		QModelIndex index = model()->index(0, modelColumn(), rootModelIndex());
+		QModelIndexList indexes = model()->match(index, Qt::CheckStateRole, Qt::Unchecked, -1, Qt::MatchExactly);
+		foreach(const QModelIndex& index, indexes)
+			items += index.data().toString();
+	}
+	return items;
+}
+
 void QxtCheckComboBox::setCheckedItems(const QStringList& items)
 {
     // not the most efficient solution but most likely nobody

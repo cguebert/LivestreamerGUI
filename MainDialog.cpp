@@ -1,6 +1,7 @@
 #include "MainDialog.h"
 
 #include <QtConcurrent>
+#include <iostream>
 
 // Uncomment to launch a first livestreamer to test the available stream before enabling the launch buttons
 //#define TEST_AVAILABLE_STREAMS
@@ -39,15 +40,18 @@ MainDialog::MainDialog()
 	infoBox->setLayout(infoLayout);
 	rightLayout->addWidget(infoBox);
 
+	m_allGamesString = tr("All games");
+	m_allLanguagesString = tr("All languages");
+
 	QFormLayout* filterLayout = new QFormLayout;
 	m_gamesComboxBox = new QxtCheckComboBox;
-	m_gamesComboxBox->addItem("All games");
+	m_gamesComboxBox->addItem(m_allGamesString);
 	m_gamesComboxBox->setDefaultText("No filter");
 	m_gamesComboxBox->setDisplayMultipleSelection(false);
 	m_gamesComboxBox->setMultipleSelectionText("%1 games selected");
 
 	m_languageComboxBox = new QxtCheckComboBox;
-	m_languageComboxBox->addItem("All languages");
+	m_languageComboxBox->addItem(m_allLanguagesString);
 	m_languageComboxBox->setDefaultText("No filter");
 	m_languageComboxBox->setDisplayMultipleSelection(false);
 	m_languageComboxBox->setMultipleSelectionText("%1 languages selected");
@@ -174,11 +178,7 @@ void MainDialog::selectionChanged(QListWidgetItem* current, QListWidgetItem*)
 #ifdef TEST_AVAILABLE_STREAMS
 				if(m_selectedStream->availableStreams.isEmpty() && !m_selectedStream->updatingAvailableStreams)
 				{
-					m_launchLow->setEnabled(false);
-					m_launchMedium->setEnabled(false);
-					m_launchHigh->setEnabled(false);
-					m_launchSource->setEnabled(false);
-
+					enableLaunchButtons(false);
 					QtConcurrent::run(this, &MainDialog::testAvailableStreams, m_selectedStream);
 				}
 				else
@@ -208,10 +208,11 @@ void MainDialog::gamesSelectionChanged(const QStringList& items)
 		checkAllGamesOption(items);
 
 	m_changingGamesList = false;
-	m_gamesSelection = m_gamesComboxBox->checkedItems();
+	computeGamesSelection();
 
-	if(m_gamesSelection.size() == m_gamesComboxBox->count()) // We don't want to count "all games" in the selection count
-		m_gamesComboxBox->setEditText(QString("%1 games selected").arg(m_gamesSelection.size()-1));
+	int nbChecked = m_gamesComboxBox->checkedItems().size();
+	if(nbChecked == m_gamesComboxBox->count()) // We don't want to count "all games" in the selection count
+		m_gamesComboxBox->setEditText(QString("%1 games selected").arg(nbChecked-1));
 
 	if(!m_streamsManager.getStreams().empty())
 		updateStreamsList();
@@ -234,10 +235,11 @@ void MainDialog::languagesSelectionChanged(const QStringList& items)
 		checkAllLanguagesOption(items);
 
 	m_changingLanguagesList = false;
-	m_languagesSelection = m_languageComboxBox->checkedItems();
+	computeLanguagesSelection();
 
-	if(m_languagesSelection.size() == m_languageComboxBox->count()) // We don't want to count "all languages" in the selection count
-		m_languageComboxBox->setEditText(QString("%1 languages selected").arg(m_languagesSelection.size()-1));
+	int nbChecked = m_languageComboxBox->checkedItems().size();
+	if(nbChecked == m_languageComboxBox->count()) // We don't want to count "all languages" in the selection count
+		m_languageComboxBox->setEditText(QString("%1 languages selected").arg(nbChecked-1));
 
 	if(!m_streamsManager.getStreams().empty())
 		updateStreamsList();
@@ -245,7 +247,11 @@ void MainDialog::languagesSelectionChanged(const QStringList& items)
 
 void MainDialog::checkAllGamesOption(const QStringList& checked)
 {
-	if(m_allGamesCheckState != Qt::Checked && checked.size() == m_gamesComboxBox->count()-1) // All selected
+	int nbGames = m_gamesComboxBox->count();
+	if(nbGames == 1)
+		return;
+
+	if(m_allGamesCheckState != Qt::Checked && checked.size() == nbGames - 1) // All selected
 		m_allGamesCheckState = Qt::Checked;
 	else if(checked.empty()) // None selected
 		m_allGamesCheckState = Qt::Unchecked;
@@ -256,7 +262,11 @@ void MainDialog::checkAllGamesOption(const QStringList& checked)
 
 void MainDialog::checkAllLanguagesOption(const QStringList& checked)
 {
-	if(m_allLanguagesCheckState != Qt::Checked && checked.size() == m_languageComboxBox->count()-1) // All selected
+	int nbLanguages = m_languageComboxBox->count();
+	if(nbLanguages == 1)
+		return;
+
+	if(m_allLanguagesCheckState != Qt::Checked && checked.size() == nbLanguages - 1) // All selected
 		m_allLanguagesCheckState = Qt::Checked;
 	else if(checked.empty()) // None selected
 		m_allLanguagesCheckState = Qt::Unchecked;
@@ -337,7 +347,7 @@ void MainDialog::updatePicture(Stream* stream)
 void MainDialog::updateGamesList()
 {
 	auto games = m_streamsManager.getGames();
-	games.insert(0, "All games");
+	games.insert(0, m_allGamesString);
 
 	m_changingGamesList = true;
 	m_gamesComboxBox->clear();
@@ -354,14 +364,14 @@ void MainDialog::updateGamesList()
 		checkAllGamesOption(m_gamesSelection);
 	}
 
-	m_gamesSelection = m_gamesComboxBox->checkedItems();
 	m_changingGamesList = false;
+	computeGamesSelection();
 }
 
 void MainDialog::updateLanguagesList()
 {
 	auto languages = m_streamsManager.getLanguages();
-	languages.insert(0, "All languages");
+	languages.insert(0, m_allLanguagesString);
 
 	m_changingLanguagesList = true;
 	m_languageComboxBox->clear();
@@ -378,8 +388,60 @@ void MainDialog::updateLanguagesList()
 		checkAllLanguagesOption(m_languagesSelection);
 	}
 
-	m_languagesSelection = m_languageComboxBox->checkedItems();
 	m_changingLanguagesList = false;
+	computeLanguagesSelection();
+}
+
+void MainDialog::computeGamesSelection()
+{	// We merge the saved selection with the new one, removing items that are unchecked
+	QStringList checked = m_gamesComboxBox->checkedItems();
+	QStringList unchecked = m_gamesComboxBox->uncheckedItems();
+	QStringList prevSelection = m_gamesSelection;
+	QStringList newSelection;
+	m_gamesSelection.clear();
+	unchecked.push_front(m_allGamesString);
+	unchecked.push_front("");
+
+	std::sort(checked.begin(), checked.end());
+	std::sort(unchecked.begin(), unchecked.end());
+	std::sort(prevSelection.begin(), prevSelection.end());
+
+	// Remove unchecked items from the selection
+	std::set_difference(prevSelection.begin(), prevSelection.end(),
+						unchecked.begin(), unchecked.end(),
+						std::back_inserter(newSelection));
+
+	// Adding the new checked items (more efficient than using QStringList::append)
+	std::set_union(newSelection.begin(), newSelection.end(),
+				   checked.begin(), checked.end(),
+				   std::back_inserter(m_gamesSelection));
+
+	for(const auto& game : m_gamesSelection)
+		std::cout << "'" << game.toStdString() << "'; ";
+	std::cout << std::endl;
+}
+
+void MainDialog::computeLanguagesSelection()
+{
+	QStringList checked = m_languageComboxBox->checkedItems();
+	QStringList unchecked = m_languageComboxBox->uncheckedItems();
+	QStringList prevSelection = m_languagesSelection;
+	QStringList newSelection;
+	m_languagesSelection.clear();
+	unchecked.push_front(m_allLanguagesString);
+	unchecked.push_front("");
+
+	std::sort(checked.begin(), checked.end());
+	std::sort(unchecked.begin(), unchecked.end());
+	std::sort(prevSelection.begin(), prevSelection.end());
+
+	std::set_difference(prevSelection.begin(), prevSelection.end(),
+						unchecked.begin(), unchecked.end(),
+						std::back_inserter(newSelection));
+
+	std::set_union(newSelection.begin(), newSelection.end(),
+				   checked.begin(), checked.end(),
+				   std::back_inserter(m_languagesSelection));
 }
 
 void MainDialog::filterStreams()
@@ -449,11 +511,11 @@ void MainDialog::readSettings()
 
 	QString tmpGames = settings.value("games").toString();
 	m_gamesSelection = tmpGames.split(";");
-	m_allGamesCheckState = (m_gamesSelection.contains("All games") ? Qt::Checked : Qt::Unchecked);
+	m_allGamesCheckState = (m_gamesSelection.contains(m_allGamesString) ? Qt::Checked : Qt::Unchecked);
 
 	QString tmpLanguages = settings.value("languages").toString();
 	m_languagesSelection = tmpLanguages.split(";");
-	m_allLanguagesCheckState = (m_languagesSelection.contains("All languages") ? Qt::Checked : Qt::Unchecked);
+	m_allLanguagesCheckState = (m_languagesSelection.contains(m_allLanguagesString) ? Qt::Checked : Qt::Unchecked);
 }
 
 void MainDialog::writeSettings()
