@@ -1,7 +1,6 @@
 #include "MainDialog.h"
 
 #include <QtConcurrent>
-#include <iostream>
 
 // Uncomment to launch a first livestreamer to test the available stream before enabling the launch buttons
 //#define TEST_AVAILABLE_STREAMS
@@ -298,12 +297,15 @@ void MainDialog::updateStreamsList()
 	const auto& streams = m_streamsManager.getStreams();
 	m_listWidget->clear(); // Will call selectionChanged and reset m_selectedStream
 
+	bool filterGames = !m_gamesComboxBox->checkedItems().empty();
+	bool filterLanguages = !m_languageComboxBox->checkedItems().empty();
+
 	for(const auto& stream : streams)
 	{
-		if(!m_languagesSelection.empty() && !m_languagesSelection.contains(stream->language))
+		if(filterLanguages && !m_languagesSelection.contains(stream->language))
 			continue;
 
-		if(!m_gamesSelection.empty() && !m_gamesSelection.contains(stream->game))
+		if(filterGames && !m_gamesSelection.contains(stream->game))
 			continue;
 
 		QListWidgetItem* item = new QListWidgetItem(stream->name, m_listWidget);
@@ -415,10 +417,6 @@ void MainDialog::computeGamesSelection()
 	std::set_union(newSelection.begin(), newSelection.end(),
 				   checked.begin(), checked.end(),
 				   std::back_inserter(m_gamesSelection));
-
-	for(const auto& game : m_gamesSelection)
-		std::cout << "'" << game.toStdString() << "'; ";
-	std::cout << std::endl;
 }
 
 void MainDialog::computeLanguagesSelection()
