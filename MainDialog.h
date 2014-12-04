@@ -26,6 +26,7 @@ protected slots:
 	void automaticUpdate();
 	void gamesSelectionChanged(const QStringList& items);
 	void languagesSelectionChanged(const QStringList& items);
+	void gamesFilterState(int state);
 
 protected:
 	virtual void closeEvent(QCloseEvent*);
@@ -66,8 +67,10 @@ protected:
 	QPushButton* m_launchHigh;
 	QPushButton* m_launchSource;
 	QTimer* m_updateTimer;
+	QCheckBox* m_inverseGamesFilterCheckBox;
 
 	QString m_allGamesString, m_allLanguagesString;
+	bool m_inverseGamesFilter;
 };
 
 #endif // MAINDIALOG_H

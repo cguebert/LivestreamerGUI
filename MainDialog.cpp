@@ -9,6 +9,7 @@ MainDialog::MainDialog()
 	: m_streamsManager(this)
 	, m_changingGamesList(false)
 	, m_changingLanguagesList(false)
+	, m_inverseGamesFilter(false)
 {
 	QVBoxLayout* vMainLayout = new QVBoxLayout;
 	m_splitter = new QSplitter;
@@ -55,8 +56,13 @@ MainDialog::MainDialog()
 	m_languageComboxBox->setDisplayMultipleSelection(false);
 	m_languageComboxBox->setMultipleSelectionText("%1 languages selected");
 
+	m_inverseGamesFilterCheckBox = new QCheckBox;
+	m_inverseGamesFilterCheckBox->setText("Inverse games filter");
+	connect(m_inverseGamesFilterCheckBox, SIGNAL(stateChanged(int)), this, SLOT(gamesFilterState(int)));
+
 	filterLayout->addRow("Games", m_gamesComboxBox);
 	filterLayout->addRow("Language", m_languageComboxBox);
+	filterLayout->addRow(m_inverseGamesFilterCheckBox);
 
 	QGroupBox* filterBox = new QGroupBox;
 	filterBox->setTitle("Filters");
@@ -305,7 +311,7 @@ void MainDialog::updateStreamsList()
 		if(filterLanguages && !m_languagesSelection.contains(stream->language))
 			continue;
 
-		if(filterGames && !m_gamesSelection.contains(stream->game))
+		if(filterGames && m_inverseGamesFilter == m_gamesSelection.contains(stream->game))
 			continue;
 
 		QListWidgetItem* item = new QListWidgetItem(stream->name, m_listWidget);
@@ -514,6 +520,9 @@ void MainDialog::readSettings()
 	QString tmpLanguages = settings.value("languages").toString();
 	m_languagesSelection = tmpLanguages.split(";");
 	m_allLanguagesCheckState = (m_languagesSelection.contains(m_allLanguagesString) ? Qt::Checked : Qt::Unchecked);
+
+	m_inverseGamesFilter = settings.value("invertGamesFilter").toBool();
+	m_inverseGamesFilterCheckBox->setCheckState(m_inverseGamesFilter ? Qt::Checked : Qt::Unchecked);
 }
 
 void MainDialog::writeSettings()
@@ -530,6 +539,7 @@ void MainDialog::writeSettings()
 
 	settings.setValue("games", m_gamesSelection.join(";"));
 	settings.setValue("languages", m_languagesSelection.join(";"));
+	settings.setValue("invertGamesFilter", m_inverseGamesFilter);
 }
 
 void MainDialog::launchLiveStreamer()
@@ -576,3 +586,9 @@ void MainDialog::testAvailableStreams(StreamsManager::StreamPtr stream)
 		enableLaunchButtons(stream->availableStreams);
 }
 
+void MainDialog::gamesFilterState(int state)
+{
+	m_inverseGamesFilter = (state == Qt::Checked);
+	if(!m_streamsManager.getStreams().empty())
+		updateStreamsList();
+}

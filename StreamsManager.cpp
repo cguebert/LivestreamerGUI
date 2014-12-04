@@ -43,14 +43,14 @@ StreamsManager::StreamsManager(QObject* parent)
 
 void StreamsManager::updateStreamsList()
 {
-	QNetworkRequest request = QNetworkRequest(QUrl("https://api.twitch.tv/kraken/streams?limit=50"));
+	QNetworkRequest request = QNetworkRequest(QUrl("https://api.twitch.tv/kraken/streams?limit=100"));
 	QNetworkReply* reply = m_networkManager.get(request);
 	connect(reply, SIGNAL(finished()), this, SLOT(streamsReply()));
 }
 
 void StreamsManager::updateStreamsList(QString game)
 {
-	QString url = QString("https://api.twitch.tv/kraken/streams?limit=50&");
+	QString url = QString("https://api.twitch.tv/kraken/streams?limit=100&");
 	if(!game.isEmpty())
 	{
 		game.replace(" ", "+");
