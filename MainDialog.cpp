@@ -136,6 +136,7 @@ MainDialog::MainDialog()
 
 	Qt::WindowFlags flags = windowFlags();
 	flags &= ~Qt::WindowContextHelpButtonHint;
+	flags |= Qt::WindowMinimizeButtonHint;
 	setWindowFlags(flags);
 }
 
