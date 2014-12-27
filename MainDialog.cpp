@@ -319,7 +319,7 @@ void MainDialog::updateStreamsList()
 		item->setData(Qt::UserRole, stream->url);
 		m_listWidget->addItem(item);
 
-		if(stream->url == currentUrl)
+		if(stream->url == currentUrl && prevSelection)
 		{
 			stream->preview = prevSelection->preview;
 			stream->previewTimestamp = prevSelection->previewTimestamp;
