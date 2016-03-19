@@ -71,9 +71,13 @@ MainDialog::MainDialog()
 
 	QHBoxLayout* launchLayout = new QHBoxLayout;
 	m_launchLow = new QPushButton("low");
+	m_launchLow->setShortcut(tr("1"));
 	m_launchMedium = new QPushButton("medium");
+	m_launchMedium->setShortcut(tr("2"));
 	m_launchHigh = new QPushButton("high");
+	m_launchHigh->setShortcut(tr("3"));
 	m_launchSource = new QPushButton("source");
+	m_launchSource->setShortcut(tr("4"));
 
 	enableLaunchButtons(false);
 
@@ -99,19 +103,15 @@ MainDialog::MainDialog()
 
 	vMainLayout->addWidget(m_splitter);
 
+	m_updateButton = new QPushButton(tr("Refresh all"), this);
+	connect(m_updateButton, SIGNAL(clicked()), this, SLOT(updateEverything()));
+
 	QPushButton* quitButton = new QPushButton(tr("Quit"), this);
 	quitButton->setDefault(true);
 	connect(quitButton, SIGNAL(clicked()), this, SLOT(closeDialog()));
 
-	m_updateButton = new QPushButton(tr("Refresh all"), this);
-	connect(m_updateButton, SIGNAL(clicked()), this, SLOT(updateEverything()));
-
-//	QPushButton* filterButton = new QPushButton(tr("Filter"), this);
-//	connect(filterButton, SIGNAL(clicked()), this, SLOT(filterStreams()));
-
 	QHBoxLayout* buttonsLayout = new QHBoxLayout;
 	buttonsLayout->addStretch();
-//	buttonsLayout->addWidget(filterButton);
 	buttonsLayout->addWidget(m_updateButton);
 	buttonsLayout->addWidget(quitButton);
 	vMainLayout->addLayout(buttonsLayout);
